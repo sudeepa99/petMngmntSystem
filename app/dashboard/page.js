@@ -1,7 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
-import { addPet, deletePet, getAllPets, updatePet } from "../api/petApi";
 import { toast } from "react-toastify";
+
+import { addPet, deletePet, getAllPets, updatePet } from "../api/petApi";
 
 const Dashboard = () => {
   const [pets, setPets] = useState([]);
@@ -52,15 +53,14 @@ const Dashboard = () => {
         const res = await updatePet(currentPet._id, formData, token);
         toast.success(res.message);
 
-        setPets(
-          pets.map((pet) => (pet._id === currentPet._id ? { ...res.pet } : pet))
-        );
+        const updatedRes = await getAllPets(token);
+        setPets(updatedRes.pets);
       } else {
         // Add new pet
         const res = await addPet(formData, token);
         toast.success(res.message);
-        setPets([...pets, newPet]);
-        await getAllPets();
+        const updatedRes = await getAllPets(token);
+        setPets(updatedRes.pets);
       }
 
       // Reset form
@@ -105,7 +105,8 @@ const Dashboard = () => {
         const res = await deletePet(petId, token);
         toast.success(res.message);
         setPets(pets.filter((pet) => pet.id !== petId));
-        await getAllPets();
+        const updatedRes = await getAllPets(token);
+        setPets(updatedRes.pets);
       } catch (error) {
         toast.error(error.response?.data?.message || "  Failed to delete pet");
       }
