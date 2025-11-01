@@ -1,5 +1,7 @@
-"use client"
-import { useState } from 'react';
+"use client";
+import { useEffect, useState } from "react";
+import { addPet, deletePet, getAllPets, updatePet } from "../api/petApi";
+import { toast } from "react-toastify";
 
 const Dashboard = () => {
   const [pets, setPets] = useState([]);
@@ -9,51 +11,74 @@ const Dashboard = () => {
 
   // Form state
   const [formData, setFormData] = useState({
-    name: '',
-    type: '',
-    breed: '',
-    age: '',
-    weight: '',
-    notes: ''
+    name: "",
+    type: "",
+    breed: "",
+    sex: "",
+    birthDate: "",
+    weight: "",
+    notes: "",
   });
+
+  //Display Added Pets
+  useEffect(() => {
+    const fetchPets = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await getAllPets(token);
+        setPets(res.pets);
+      } catch (error) {
+        toast.error(res.message);
+      }
+    };
+
+    fetchPets();
+  }, []);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (isEditing) {
-      // Update existing pet
-      setPets(pets.map(pet => 
-        pet.id === currentPet.id ? { ...formData, id: currentPet.id } : pet
-      ));
-    } else {
-      // Add new pet
-      const newPet = {
-        ...formData,
-        id: Date.now().toString()
-      };
-      setPets([...pets, newPet]);
-    }
+    const token = localStorage.getItem("token");
 
-    // Reset form
-    setFormData({
-      name: '',
-      type: '',
-      breed: '',
-      age: '',
-      weight: '',
-      notes: ''
-    });
-    setIsEditing(false);
-    setCurrentPet(null);
-    setShowForm(false);
+    try {
+      if (isEditing) {
+        const res = await updatePet(currentPet._id, formData, token);
+        toast.success(res.message);
+
+        setPets(
+          pets.map((pet) => (pet._id === currentPet._id ? { ...res.pet } : pet))
+        );
+      } else {
+        // Add new pet
+        const res = await addPet(formData, token);
+        toast.success(res.message);
+        setPets([...pets, newPet]);
+        await getAllPets();
+      }
+
+      // Reset form
+      setFormData({
+        name: "",
+        type: "",
+        breed: "",
+        sex: "",
+        birthDate: "",
+        weight: "",
+        notes: "",
+      });
+      setIsEditing(false);
+      setCurrentPet(null);
+      setShowForm(false);
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to add pet");
+    }
   };
 
   const handleEdit = (pet) => {
@@ -61,29 +86,41 @@ const Dashboard = () => {
       name: pet.name,
       type: pet.type,
       breed: pet.breed,
-      age: pet.age,
+      sex: pet.sex,
+      birthDate: pet.birthDate
+        ? new Date(pet.birthDate).toISOString().split("T")[0]
+        : "",
       weight: pet.weight,
-      notes: pet.notes
+      notes: pet.notes,
     });
     setIsEditing(true);
     setCurrentPet(pet);
     setShowForm(true);
   };
 
-  const handleDelete = (petId) => {
-    if (window.confirm('Are you sure you want to delete this pet?')) {
-      setPets(pets.filter(pet => pet.id !== petId));
+  const handleDelete = async (petId) => {
+    const token = localStorage.getItem("token");
+    if (window.confirm("Are you sure you want to delete this pet?")) {
+      try {
+        const res = await deletePet(petId, token);
+        toast.success(res.message);
+        setPets(pets.filter((pet) => pet.id !== petId));
+        await getAllPets();
+      } catch (error) {
+        toast.error(error.response?.data?.message || "  Failed to delete pet");
+      }
     }
   };
 
   const handleCancel = () => {
     setFormData({
-      name: '',
-      type: '',
-      breed: '',
-      age: '',
-      weight: '',
-      notes: ''
+      name: "",
+      type: "",
+      breed: "",
+      sex: "",
+      birthDate: "",
+      weight: "",
+      notes: "",
     });
     setIsEditing(false);
     setCurrentPet(null);
@@ -97,9 +134,7 @@ const Dashboard = () => {
           <h1 className="text-3xl font-extrabold text-gray-900 sm:text-4xl">
             Pet Dashboard
           </h1>
-          <p className="mt-3 text-xl text-gray-500">
-            Manage your pet details
-          </p>
+          <p className="mt-3 text-xl text-gray-500">Manage your pet details</p>
         </div>
 
         {/* Add Pet Button */}
@@ -116,12 +151,14 @@ const Dashboard = () => {
         {showForm && (
           <div className="mt-6 bg-white shadow rounded-lg p-6">
             <h2 className="text-2xl font-bold mb-6">
-              {isEditing ? 'Edit Pet' : 'Add New Pet'}
+              {isEditing ? "Edit Pet" : "Add New Pet"}
             </h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Pet Name</label>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Pet Name
+                  </label>
                   <input
                     type="text"
                     name="name"
@@ -132,7 +169,9 @@ const Dashboard = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Type</label>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Type
+                  </label>
                   <select
                     name="type"
                     value={formData.type}
@@ -149,29 +188,51 @@ const Dashboard = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Breed</label>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Breed
+                  </label>
                   <input
                     type="text"
                     name="breed"
                     value={formData.breed}
                     onChange={handleInputChange}
+                    required
                     className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Age (years)</label>
-                  <input
-                    type="number"
-                    name="age"
-                    value={formData.age}
+                  <label className="block text-sm font-medium text-gray-700">
+                    Sex
+                  </label>
+                  <select
+                    name="sex"
+                    value={formData.sex}
                     onChange={handleInputChange}
-                    min="0"
-                    step="0.1"
+                    required
                     className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  >
+                    <option value="">Select Sex</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Birth Date
+                  </label>
+                  <input
+                    type="date"
+                    name="birthDate"
+                    value={formData.birthDate}
+                    onChange={handleInputChange}
+                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                    required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Weight (kg)</label>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Weight (kg)
+                  </label>
                   <input
                     type="number"
                     name="weight"
@@ -184,7 +245,9 @@ const Dashboard = () => {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Notes</label>
+                <label className="block text-sm font-medium text-gray-700">
+                  Notes
+                </label>
                 <textarea
                   name="notes"
                   value={formData.notes}
@@ -205,7 +268,7 @@ const Dashboard = () => {
                   type="submit"
                   className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md font-medium"
                 >
-                  {isEditing ? 'Update Pet' : 'Add Pet'}
+                  {isEditing ? "Update Pet" : "Add Pet"}
                 </button>
               </div>
             </form>
@@ -217,25 +280,49 @@ const Dashboard = () => {
           <h2 className="text-2xl font-bold mb-6">My Pets</h2>
           {pets.length === 0 ? (
             <div className="text-center py-12 bg-white rounded-lg shadow">
-              <p className="text-gray-500 text-lg">No pets added yet. Add your first pet!</p>
+              <p className="text-gray-500 text-lg">
+                No pets added yet. Add your first pet!
+              </p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {pets.map((pet) => (
-                <div key={pet.id} className="bg-white rounded-lg shadow-md p-6">
+                <div
+                  key={pet._id}
+                  className="bg-white rounded-lg shadow-md p-6"
+                >
                   <div className="flex justify-between items-start mb-4">
-                    <h3 className="text-xl font-bold text-gray-900">{pet.name}</h3>
+                    <h3 className="text-xl font-bold text-gray-900">
+                      {pet.name}
+                    </h3>
                     <span className="bg-indigo-100 text-indigo-800 text-xs font-medium px-2.5 py-0.5 rounded">
                       {pet.type}
                     </span>
                   </div>
-                  
+
                   <div className="space-y-2">
-                    <p><span className="font-medium">Breed:</span> {pet.breed || 'Not specified'}</p>
-                    <p><span className="font-medium">Age:</span> {pet.age ? `${pet.age} years` : 'Not specified'}</p>
-                    <p><span className="font-medium">Weight:</span> {pet.weight ? `${pet.weight} kg` : 'Not specified'}</p>
+                    <p>
+                      <span className="font-medium">Breed:</span>{" "}
+                      {pet.breed || "Not specified"}
+                    </p>
+                    <p>
+                      <span className="font-medium">Sex:</span>{" "}
+                      {pet.sex || "Not specified"}
+                    </p>
+                    <p>
+                      <span className="font-medium">Birth Date:</span>{" "}
+                      {pet.birthDate
+                        ? new Date(pet.birthDate).toISOString().split("T")[0]
+                        : "Not specified"}
+                    </p>
+                    <p>
+                      <span className="font-medium">Weight:</span>{" "}
+                      {pet.weight ? `${pet.weight} kg` : "Not specified"}
+                    </p>
                     {pet.notes && (
-                      <p><span className="font-medium">Notes:</span> {pet.notes}</p>
+                      <p>
+                        <span className="font-medium">Notes:</span> {pet.notes}
+                      </p>
                     )}
                   </div>
 
@@ -247,7 +334,7 @@ const Dashboard = () => {
                       Edit
                     </button>
                     <button
-                      onClick={() => handleDelete(pet.id)}
+                      onClick={() => handleDelete(pet._id)}
                       className="text-red-600 hover:text-red-900 font-medium"
                     >
                       Delete

@@ -32,7 +32,6 @@ const Login = () => {
         if (res.token) {
           localStorage.setItem("token", res.token);
         }
-
         router.push("/dashboard");
       } else {
         const res = await registerUser(formData);
