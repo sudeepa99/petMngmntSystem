@@ -1,3 +1,5 @@
+import { ToastContainer } from "react-toastify";
+
 import "./globals.css";
 
 export const metadata = {
@@ -8,7 +10,19 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body className="bg-[#fffaf4]">{children}</body>
+      <body className="bg-[#fffaf4]">
+        {children}
+        <ToastContainer
+          position="top-right"
+          autoClose={3000}
+          hideProgressBar={false}
+          newestOnTop={false}
+          closeOnClick
+          pauseOnHover
+          draggable
+          theme="colored"
+        />
+      </body>
     </html>
   );
 }
