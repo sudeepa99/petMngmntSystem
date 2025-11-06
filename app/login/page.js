@@ -35,7 +35,11 @@ const Login = () => {
         if (res.token) {
           localStorage.setItem("token", res.token);
         }
-        router.push("/dashboard");
+        if (res.role == "viewer") {
+          router.push("/dashboard");
+        } else {
+          router.push("/adminDasboard");
+        }
       } else {
         const res = await registerUser(formData);
 

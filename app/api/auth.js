@@ -1,9 +1,10 @@
+import axios from "axios";
 import api from "./axios";
 
 export const registerUser = async (userData) => {
   try {
-    const res = await api.post("/auth/register", userData);
-    return res.data;
+    const response = await api.post("/auth/register", userData);
+    return response.data;
   } catch (error) {
     console.error(error.response?.data || error.message);
     throw error.response?.data || { message: "Registration Failed" };
@@ -23,4 +24,17 @@ export const loginUser = async (credentials) => {
     console.error(error.response?.data || error.message);
     throw error.response?.data || { message: "Login Failed" };
   }
+};
+
+export const logoutUser = async (token) => {
+  const response = await api.post(
+    "/auth/logout",
+    {},
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+  return response.data;
 };

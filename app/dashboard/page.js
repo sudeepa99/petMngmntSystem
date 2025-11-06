@@ -4,6 +4,7 @@ import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 
 import { addPet, deletePet, getAllPets, updatePet } from "../api/petApi";
+import { logoutUser } from "../api/auth";
 
 const Dashboard = () => {
   const [pets, setPets] = useState([]);
@@ -130,9 +131,17 @@ const Dashboard = () => {
     setShowForm(false);
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    router.push("/login");
+  const handleLogout = async () => {
+    const token = localStorage.getItem("token");
+    try {
+      const res = await logoutUser(token);
+      toast.success(res.message);
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      localStorage.removeItem("token");
+      router.push("/login");
+    }
   };
 
   const handleHome = () => {
@@ -150,7 +159,9 @@ const Dashboard = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex items-center">
-              <h1 className="text-xl font-bold text-gray-900">petty<span className="font-normal">world</span></h1>
+              <h1 className="text-xl font-bold text-gray-900">
+                petty<span className="font-normal">world</span>
+              </h1>
             </div>
             <div className="flex items-center space-x-4">
               <button
@@ -182,7 +193,9 @@ const Dashboard = () => {
             <h1 className="text-3xl font-extrabold text-gray-900 sm:text-4xl">
               Pet Dashboard
             </h1>
-            <p className="mt-3 text-xl text-gray-500">Manage your pet details</p>
+            <p className="mt-3 text-xl text-gray-500">
+              Manage your pet details
+            </p>
           </div>
 
           {/* Add Pet Button */}
@@ -369,7 +382,8 @@ const Dashboard = () => {
                       </p>
                       {pet.notes && (
                         <p>
-                          <span className="font-medium">Notes:</span> {pet.notes}
+                          <span className="font-medium">Notes:</span>{" "}
+                          {pet.notes}
                         </p>
                       )}
                     </div>
