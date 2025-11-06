@@ -12,7 +12,7 @@ const adminDasboard = () => {
       try {
         const token = localStorage.getItem("token");
         const usersData = await getAllUsers(token);
-        setUsers(usersData);
+        setUsers(usersData.users);
       } catch (err) {
         console.error("Failed to load users:", err);
       } finally {
